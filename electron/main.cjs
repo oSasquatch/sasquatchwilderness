@@ -12,6 +12,15 @@ const PLAYER_Y = -PLAYER_EDGE_COMPENSATION_Y;
 let mainWindow;
 let playerWindow;
 
+// Use a fixed userData path and reduce shader cache churn on Windows.
+app.setPath("userData", path.join(app.getPath("appData"), "SasquatchWildernessDesktop"));
+app.commandLine.appendSwitch("disable-gpu-shader-disk-cache");
+
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
+if (!gotSingleInstanceLock) {
+  app.quit();
+}
+
 function wirePlayerCloseShortcuts(win) {
   win.webContents.on("before-input-event", (event, input) => {
     const key = String(input.key || "").toLowerCase();
@@ -110,9 +119,25 @@ function createMainWindow() {
 
   wireWindowOpenHandling(mainWindow);
   mainWindow.loadURL(APP_URL);
+
+  mainWindow.on("closed", () => {
+    mainWindow = null;
+  });
 }
 
 app.whenReady().then(() => {
+  app.on("second-instance", () => {
+    if (!mainWindow || mainWindow.isDestroyed()) {
+      createMainWindow();
+      return;
+    }
+
+    if (mainWindow.isMinimized()) {
+      mainWindow.restore();
+    }
+    mainWindow.focus();
+  });
+
   Menu.setApplicationMenu(null);
   createMainWindow();
 
