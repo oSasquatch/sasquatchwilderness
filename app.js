@@ -4,6 +4,7 @@ import { ONE_PIECE_ARCS, ONE_PIECE_EPISODE_COUNT, ONE_PIECE_PROVIDERS, ONE_PIECE
 const API_BASE = "/api/leaderboard";
 const PAGE_SIZE = 500;
 const AUTO_REFRESH_SECONDS = 5;
+const ONE_PIECE_POPUP_SCALE = 0.46;
 
 const categories = [
   {
@@ -327,10 +328,14 @@ function buildOnePieceQuery(episode, sourceKey) {
 }
 
 function openOnePiecePopup(url) {
+  const width = Math.max(520, Math.round(window.screen.availWidth * ONE_PIECE_POPUP_SCALE));
+  const height = Math.max(380, Math.round(window.screen.availHeight * ONE_PIECE_POPUP_SCALE));
+  const left = 0;
+  const top = 0;
   const popup = window.open(
     url,
     "sasquatchOnePieceViewer",
-    "popup=yes,width=1360,height=860,menubar=no,toolbar=no,location=yes,status=no,resizable=yes,scrollbars=yes"
+    `popup=yes,width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=yes,status=no,resizable=yes,scrollbars=yes`
   );
 
   if (!popup) {
