@@ -340,7 +340,7 @@ function openOnePiecePopup(url) {
   const popup = window.open(
     url,
     "sasquatchOnePieceViewer",
-    `popup=yes,width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=yes,status=no,resizable=yes,scrollbars=yes`
+    `popup=yes,width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes`
   );
 
   if (!popup) {
