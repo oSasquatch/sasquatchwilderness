@@ -473,7 +473,7 @@ h1 {
 
 .onepiece-controls {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr auto;
+  grid-template-columns: 1.1fr 1.1fr 1fr auto auto auto;
   gap: 0.65rem;
   align-items: end;
 }
@@ -499,9 +499,22 @@ h1 {
 }
 
 .onepiece-field select:focus-visible,
-.onepiece-watch-btn:focus-visible {
+.onepiece-watch-btn:focus-visible,
+.onepiece-nav-btn:focus-visible,
+.onepiece-copy-btn:focus-visible {
   outline: 2px solid #ffd9ab;
   outline-offset: 2px;
+}
+
+.onepiece-nav-btn {
+  height: 2.3rem;
+  border-radius: 9px;
+  border: 1px solid #ffffff30;
+  background: #1a2d23;
+  color: var(--text);
+  font-weight: 600;
+  padding: 0 0.8rem;
+  cursor: pointer;
 }
 
 .onepiece-watch-btn {
@@ -522,7 +535,7 @@ h1 {
 .onepiece-links {
   margin-top: 0.65rem;
   display: grid;
-  grid-template-columns: repeat(3, minmax(140px, 1fr));
+  grid-template-columns: repeat(2, minmax(150px, 1fr));
   gap: 0.55rem;
 }
 
@@ -555,10 +568,35 @@ h1 {
   background: #2b1905;
 }
 
+.onepiece-link-secondary {
+  border-color: #ffffff30;
+  background: #1a2d23;
+}
+
 .onepiece-note {
-  margin: 0.2rem 0 0.65rem;
+  margin: 0.2rem 0 0;
   color: #ffd7a8;
   font-size: 0.92rem;
+}
+
+.onepiece-copy-btn {
+  border: 1px solid #ffffff32;
+  border-radius: 9px;
+  background: #182821;
+  color: #e6f2e8;
+  font-weight: 600;
+  padding: 0.62rem 0.72rem;
+  cursor: pointer;
+}
+
+.onepiece-copy-btn:hover {
+  border-color: #ffd29d;
+}
+
+.onepiece-now-watching {
+  margin: 0.65rem 0 0;
+  color: #cde3d1;
+  font-size: 0.86rem;
 }
 
 .onepiece-frame {

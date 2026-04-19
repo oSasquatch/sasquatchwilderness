@@ -8,6 +8,7 @@ const ONE_PIECE_POPUP_WIDTH = 760;
 const ONE_PIECE_POPUP_HEIGHT = 430;
 const ONE_PIECE_POPUP_LEFT_OFFSET = -40;
 const ONE_PIECE_POPUP_TOP_OFFSET = -20;
+const ONE_PIECE_PREFS_KEY = "sasq.onepiece.prefs.v1";
 
 const categories = [
   {
@@ -158,9 +159,12 @@ const filtersSection = document.querySelector(".filters");
 const onePieceArcSelect = document.querySelector("#onePieceArcSelect");
 const onePieceEpisodeSelect = document.querySelector("#onePieceEpisodeSelect");
 const onePieceSourceSelect = document.querySelector("#onePieceSourceSelect");
+const onePiecePrevBtn = document.querySelector("#onePiecePrevBtn");
+const onePieceNextBtn = document.querySelector("#onePieceNextBtn");
 const onePieceWatchBtn = document.querySelector("#onePieceWatchBtn");
 const onePieceLinks = document.querySelector("#onePieceLinks");
 const onePieceFrame = document.querySelector("#onePieceFrame");
+const onePieceNowWatching = document.querySelector("#onePieceNowWatching");
 
 let selectedCategory = categories[0];
 let allPlayers = [];
@@ -174,6 +178,59 @@ let isLoadingData = false;
 let autoRefreshTimer = null;
 let refreshCountdown = AUTO_REFRESH_SECONDS;
 let streamsMode = false;
+let popupStatusMessage = "";
+
+function isMobileView() {
+  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.matchMedia("(max-width: 920px)").matches;
+}
+
+function loadOnePiecePrefs() {
+  try {
+    const raw = localStorage.getItem(ONE_PIECE_PREFS_KEY);
+    if (!raw) {
+      return null;
+    }
+
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+function saveOnePiecePrefs() {
+  if (!onePieceArcSelect || !onePieceEpisodeSelect || !onePieceSourceSelect) {
+    return;
+  }
+
+  const payload = {
+    arcKey: onePieceArcSelect.value,
+    episode: Number(onePieceEpisodeSelect.value || 1),
+    sourceKey: onePieceSourceSelect.value
+  };
+
+  try {
+    localStorage.setItem(ONE_PIECE_PREFS_KEY, JSON.stringify(payload));
+  } catch {
+    // Ignore storage errors.
+  }
+}
+
+function findArcByEpisode(episode) {
+  const value = Math.max(1, Math.min(ONE_PIECE_EPISODE_COUNT, Number(episode) || 1));
+  return ONE_PIECE_ARCS.find((arc) => value >= arc.start && value <= arc.end) || ONE_PIECE_ARCS[ONE_PIECE_ARCS.length - 1];
+}
+
+function setEpisodeAcrossArcs(episode) {
+  if (!onePieceArcSelect || !onePieceEpisodeSelect) {
+    return;
+  }
+
+  const target = Math.max(1, Math.min(ONE_PIECE_EPISODE_COUNT, Number(episode) || 1));
+  const targetArc = findArcByEpisode(target);
+  onePieceArcSelect.value = targetArc.key;
+  renderOnePieceEpisodesForArc();
+  onePieceEpisodeSelect.value = String(target);
+}
 
 function isStreamsCategory() {
   return streamsMode;
@@ -279,6 +336,18 @@ function renderOnePieceOptions() {
     onePieceSourceSelect.appendChild(option);
   });
 
+  const prefs = loadOnePiecePrefs();
+  if (prefs?.sourceKey && ONE_PIECE_SOURCES.some((source) => source.key === prefs.sourceKey)) {
+    onePieceSourceSelect.value = prefs.sourceKey;
+  }
+
+  if (prefs?.episode) {
+    setEpisodeAcrossArcs(prefs.episode);
+  } else if (prefs?.arcKey && ONE_PIECE_ARCS.some((arc) => arc.key === prefs.arcKey)) {
+    onePieceArcSelect.value = prefs.arcKey;
+    renderOnePieceEpisodesForArc();
+  }
+
   renderOnePieceLinks();
 }
 
@@ -313,10 +382,16 @@ function buildOnePieceQuery(episode, sourceKey) {
   const source = ONE_PIECE_SOURCES.find((item) => item.key === sourceKey) || ONE_PIECE_SOURCES[0];
   const arc = getSelectedArc();
   const suffix = source?.querySuffix ? ` ${source.querySuffix}` : "";
-  return `One Piece ${arc.label} Episode ${episode}${suffix}`;
+  return `One Piece ${arc.label} episode ${episode}${suffix} watch`;
 }
 
 function openOnePiecePopup(url) {
+  if (isMobileView()) {
+    window.location.assign(url);
+    popupStatusMessage = "Opened Netflix directly for mobile viewing.";
+    return true;
+  }
+
   const width = Math.min(ONE_PIECE_POPUP_WIDTH, Math.max(480, window.screen.availWidth - 40));
   const height = Math.min(ONE_PIECE_POPUP_HEIGHT, Math.max(320, window.screen.availHeight - 80));
   const screenLeft = Number(window.screen.availLeft || 0);
@@ -330,8 +405,8 @@ function openOnePiecePopup(url) {
   );
 
   if (!popup) {
-    window.location.assign(url);
-    return;
+    popupStatusMessage = "Popup blocked. Use the fallback button to open Netflix in this tab.";
+    return false;
   }
 
   try {
@@ -342,6 +417,55 @@ function openOnePiecePopup(url) {
   }
 
   popup.focus();
+  popupStatusMessage = "Popup opened. Keeping Streams visible in this tab.";
+  return true;
+}
+
+function getCurrentOnePieceContext() {
+  if (!onePieceEpisodeSelect || !onePieceSourceSelect) {
+    return null;
+  }
+
+  const episode = Number(onePieceEpisodeSelect.value || 1);
+  const sourceKey = onePieceSourceSelect.value;
+  const query = buildOnePieceQuery(episode, sourceKey);
+  const arc = getSelectedArc();
+  const source = ONE_PIECE_SOURCES.find((item) => item.key === sourceKey) || ONE_PIECE_SOURCES[0];
+  const netflixProvider = ONE_PIECE_PROVIDERS.find((provider) => provider.key === "netflix") || ONE_PIECE_PROVIDERS[0];
+  if (!netflixProvider) {
+    return null;
+  }
+
+  return {
+    episode,
+    source,
+    query,
+    arc,
+    netflixUrl: netflixProvider.buildUrl(query),
+    canEmbed: netflixProvider.embeddable !== false
+  };
+}
+
+function updateNowWatching(context) {
+  if (!onePieceNowWatching || !context) {
+    return;
+  }
+
+  const sourceLabel = context.source?.label || "Subbed";
+  onePieceNowWatching.textContent = `Now Watching: ${context.arc.label} • Episode ${context.episode} • ${sourceLabel}${
+    popupStatusMessage ? ` | ${popupStatusMessage}` : ""
+  }`;
+}
+
+function openCurrentOnePieceEpisode() {
+  const context = getCurrentOnePieceContext();
+  if (!context) {
+    return;
+  }
+
+  saveOnePiecePrefs();
+  openOnePiecePopup(context.netflixUrl);
+  renderOnePieceLinks();
 }
 
 function renderOnePieceLinks() {
@@ -349,35 +473,45 @@ function renderOnePieceLinks() {
     return;
   }
 
-  const episode = Number(onePieceEpisodeSelect.value || 1);
-  const sourceKey = onePieceSourceSelect.value;
-  const query = buildOnePieceQuery(episode, sourceKey);
-  const arc = getSelectedArc();
-
-  const netflixProvider = ONE_PIECE_PROVIDERS.find((provider) => provider.key === "netflix") || ONE_PIECE_PROVIDERS[0];
-  if (!netflixProvider) {
+  const context = getCurrentOnePieceContext();
+  if (!context) {
     return;
   }
-  const selectedProviderUrl = netflixProvider.buildUrl(query);
-  const canEmbed = netflixProvider.embeddable !== false;
+  const { arc, episode, query, netflixUrl, canEmbed } = context;
+
+  saveOnePiecePrefs();
+  updateNowWatching(context);
 
   if (onePieceFrame) {
     onePieceFrame.hidden = !canEmbed;
-    onePieceFrame.src = canEmbed ? selectedProviderUrl : "about:blank";
+    onePieceFrame.src = canEmbed ? netflixUrl : "about:blank";
   }
 
-  const openInTabCard = `
-    <a class="onepiece-link-card onepiece-link-primary" href="${selectedProviderUrl}" data-popup-link="true" rel="noreferrer">
-      <strong>Open Netflix in popup</strong>
+  const openPopupCard = `
+    <a class="onepiece-link-card onepiece-link-primary" href="${netflixUrl}" data-popup-link="true" rel="noreferrer">
+      <strong>Watch on Netflix (Popup)</strong>
       <span>${arc.label} • Episode ${episode}</span>
     </a>
   `;
 
+  const openSameTabCard = `
+    <a class="onepiece-link-card onepiece-link-secondary" href="${netflixUrl}" rel="noreferrer">
+      <strong>Open Netflix in this tab</strong>
+      <span>Fallback if popup is blocked</span>
+    </a>
+  `;
+
+  const copySearchCard = `
+    <button class="onepiece-copy-btn" type="button" data-copy-query="true" data-query="${escapeHtml(query)}">
+      Copy Search Text
+    </button>
+  `;
+
   const blockedMessage = canEmbed
     ? ""
-    : "<p class=\"onepiece-note\">Netflix blocks embedded playback, so use the popup button below to keep Sasquatch open.</p>";
+    : "<p class=\"onepiece-note\">Netflix blocks in-page playback, so use popup mode for side-by-side viewing.</p>";
 
-  onePieceLinks.innerHTML = `${blockedMessage}${openInTabCard}`;
+  onePieceLinks.innerHTML = `${blockedMessage}${openPopupCard}${openSameTabCard}${copySearchCard}`;
 }
 
 function syncViewMode() {
@@ -810,7 +944,7 @@ if (streamsToggle) {
 }
 
 if (onePieceWatchBtn) {
-  onePieceWatchBtn.addEventListener("click", renderOnePieceLinks);
+  onePieceWatchBtn.addEventListener("click", openCurrentOnePieceEpisode);
 }
 
 if (onePieceEpisodeSelect) {
@@ -819,18 +953,64 @@ if (onePieceEpisodeSelect) {
 
 if (onePieceArcSelect) {
   onePieceArcSelect.addEventListener("change", () => {
+    popupStatusMessage = "";
     renderOnePieceEpisodesForArc();
     renderOnePieceLinks();
   });
 }
 
 if (onePieceSourceSelect) {
-  onePieceSourceSelect.addEventListener("change", renderOnePieceLinks);
+  onePieceSourceSelect.addEventListener("change", () => {
+    popupStatusMessage = "";
+    renderOnePieceLinks();
+  });
+}
+
+if (onePiecePrevBtn) {
+  onePiecePrevBtn.addEventListener("click", () => {
+    const current = Number(onePieceEpisodeSelect?.value || 1);
+    setEpisodeAcrossArcs(Math.max(1, current - 1));
+    popupStatusMessage = "";
+    renderOnePieceLinks();
+  });
+}
+
+if (onePieceNextBtn) {
+  onePieceNextBtn.addEventListener("click", () => {
+    const current = Number(onePieceEpisodeSelect?.value || 1);
+    setEpisodeAcrossArcs(Math.min(ONE_PIECE_EPISODE_COUNT, current + 1));
+    popupStatusMessage = "";
+    renderOnePieceLinks();
+  });
 }
 
 if (onePieceLinks) {
   onePieceLinks.addEventListener("click", (event) => {
-    const link = event.target.closest('a[data-popup-link="true"]');
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return;
+    }
+
+    const copyButton = target.closest('button[data-copy-query="true"]');
+    if (copyButton) {
+      event.preventDefault();
+      const query = copyButton.getAttribute("data-query") || "";
+      if (query) {
+        navigator.clipboard
+          .writeText(query)
+          .then(() => {
+            popupStatusMessage = "Copied search text to clipboard.";
+            renderOnePieceLinks();
+          })
+          .catch(() => {
+            popupStatusMessage = "Copy blocked. You can copy manually from the button text.";
+            renderOnePieceLinks();
+          });
+      }
+      return;
+    }
+
+    const link = target.closest('a[data-popup-link="true"]');
     if (!link) {
       return;
     }
@@ -842,6 +1022,7 @@ if (onePieceLinks) {
     }
 
     openOnePiecePopup(href);
+    renderOnePieceLinks();
   });
 }
 
@@ -863,6 +1044,25 @@ document.addEventListener("click", (event) => {
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
     closeWipeMenu();
+  }
+
+  const target = event.target;
+  if (target instanceof HTMLElement && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT")) {
+    return;
+  }
+
+  if (!streamsMode) {
+    return;
+  }
+
+  if (event.key === "ArrowLeft") {
+    event.preventDefault();
+    onePiecePrevBtn?.click();
+  }
+
+  if (event.key === "ArrowRight") {
+    event.preventDefault();
+    onePieceNextBtn?.click();
   }
 });
 
