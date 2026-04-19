@@ -7,8 +7,27 @@ export default {
       const targetUrl = new URL(`https://peanutswasteland.com/api/${pathSuffix}`);
       targetUrl.search = incomingUrl.search;
 
+      const requestHeaders = new Headers();
+      const accept = request.headers.get("accept");
+      const acceptLanguage = request.headers.get("accept-language");
+      const contentType = request.headers.get("content-type");
+
+      if (accept) {
+        requestHeaders.set("accept", accept);
+      }
+      if (acceptLanguage) {
+        requestHeaders.set("accept-language", acceptLanguage);
+      }
+      if (contentType && request.method !== "GET" && request.method !== "HEAD") {
+        requestHeaders.set("content-type", contentType);
+      }
+
+      requestHeaders.set("origin", "https://peanutswasteland.com");
+      requestHeaders.set("referer", "https://peanutswasteland.com/");
+
       const init = {
         method: request.method,
+        headers: requestHeaders,
         redirect: "follow"
       };
 
