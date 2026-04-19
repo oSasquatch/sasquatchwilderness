@@ -4,8 +4,8 @@ const path = require("node:path");
 const APP_URL = "https://sasquatch.fq7xrtdkqs.workers.dev/";
 const PLAYER_WIDTH = 640;
 const PLAYER_HEIGHT = 360;
-const PLAYER_X = 0;
-const PLAYER_Y = 0;
+const PLAYER_X = -2;
+const PLAYER_Y = -2;
 
 let mainWindow;
 let playerWindow;
@@ -19,6 +19,9 @@ function createPlayerWindow(targetUrl) {
       y: PLAYER_Y,
       useContentSize: true,
       frame: false,
+      thickFrame: false,
+      roundedCorners: false,
+      hasShadow: false,
       movable: true,
       resizable: false,
       alwaysOnTop: true,
