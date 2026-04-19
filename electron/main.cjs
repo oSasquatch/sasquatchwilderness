@@ -4,8 +4,10 @@ const path = require("node:path");
 const APP_URL = "https://sasquatch.fq7xrtdkqs.workers.dev/";
 const PLAYER_WIDTH = 640;
 const PLAYER_HEIGHT = 360;
-const PLAYER_X = -2;
-const PLAYER_Y = -2;
+const PLAYER_EDGE_COMPENSATION_X = 12;
+const PLAYER_EDGE_COMPENSATION_Y = 12;
+const PLAYER_X = -PLAYER_EDGE_COMPENSATION_X;
+const PLAYER_Y = -PLAYER_EDGE_COMPENSATION_Y;
 
 let mainWindow;
 let playerWindow;
@@ -44,8 +46,8 @@ function createPlayerWindow(targetUrl) {
   playerWindow.setBounds({
     x: PLAYER_X,
     y: PLAYER_Y,
-    width: PLAYER_WIDTH,
-    height: PLAYER_HEIGHT
+    width: PLAYER_WIDTH + PLAYER_EDGE_COMPENSATION_X,
+    height: PLAYER_HEIGHT + PLAYER_EDGE_COMPENSATION_Y
   });
   playerWindow.loadURL(targetUrl);
   playerWindow.show();
