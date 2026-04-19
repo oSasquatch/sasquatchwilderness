@@ -1,3 +1,5 @@
+import { STREAM_CHANNELS } from "./streams.config.js";
+
 const API_BASE = "/api/leaderboard";
 const PAGE_SIZE = 500;
 const AUTO_REFRESH_SECONDS = 5;
@@ -122,6 +124,12 @@ const categories = [
       { key: "player_mission_started", label: "Missions Started" },
       { key: "player_mission_completed", label: "Missions Completed" }
     ]
+  },
+  {
+    label: "YouTube Streams",
+    slug: "streams",
+    sortBy: "",
+    columns: []
   }
 ];
 
@@ -142,6 +150,10 @@ const prevPageBtn = document.querySelector("#prevPage");
 const nextPageBtn = document.querySelector("#nextPage");
 const pageLabel = document.querySelector("#pageLabel");
 const pagerNode = document.querySelector(".pager");
+const boardWrap = document.querySelector(".board-wrap");
+const streamsSection = document.querySelector("#streamsSection");
+const streamsGrid = document.querySelector("#streamsGrid");
+const streamsMeta = document.querySelector("#streamsMeta");
 
 let selectedCategory = categories[0];
 let allPlayers = [];
@@ -154,6 +166,95 @@ let totalCount = 0;
 let isLoadingData = false;
 let autoRefreshTimer = null;
 let refreshCountdown = AUTO_REFRESH_SECONDS;
+
+function isStreamsCategory() {
+  return selectedCategory.slug === "streams";
+}
+
+function getYouTubeEmbedUrl(channelId) {
+  const url = new URL("https://www.youtube.com/embed/live_stream");
+  url.searchParams.set("channel", channelId);
+  url.searchParams.set("autoplay", "0");
+  url.searchParams.set("mute", "1");
+  url.searchParams.set("modestbranding", "1");
+  url.searchParams.set("rel", "0");
+  url.searchParams.set("origin", window.location.origin);
+  return url.toString();
+}
+
+function renderStreams() {
+  if (!streamsSection || !streamsGrid || !streamsMeta) {
+    return;
+  }
+
+  streamsGrid.innerHTML = "";
+
+  if (STREAM_CHANNELS.length === 0) {
+    streamsMeta.textContent = "No channels configured yet";
+    streamsGrid.innerHTML =
+      '<p class="streams-empty">Add channel IDs in streams.config.js to show your server creators here.</p>';
+    return;
+  }
+
+  streamsMeta.textContent = `${STREAM_CHANNELS.length} channels configured`;
+
+  STREAM_CHANNELS.forEach((stream) => {
+    const card = document.createElement("article");
+    card.className = "stream-card";
+
+    const safeName = stream.name || "Creator";
+    const channelUrl = `https://www.youtube.com/channel/${stream.channelId}`;
+    const frameUrl = getYouTubeEmbedUrl(stream.channelId);
+
+    card.innerHTML = `
+      <div class="stream-card-head">
+        <strong>${safeName}</strong>
+        <a href="${channelUrl}" target="_blank" rel="noreferrer">Channel</a>
+      </div>
+      <iframe
+        class="stream-frame"
+        src="${frameUrl}"
+        title="${safeName} Live Stream"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        referrerpolicy="strict-origin-when-cross-origin"
+        allowfullscreen
+      ></iframe>
+    `;
+
+    streamsGrid.appendChild(card);
+  });
+}
+
+function syncViewMode() {
+  const streamsMode = isStreamsCategory();
+
+  if (quickStatsNode) {
+    quickStatsNode.hidden = streamsMode;
+  }
+  if (boardWrap) {
+    boardWrap.hidden = streamsMode;
+  }
+  if (streamsSection) {
+    streamsSection.hidden = !streamsMode;
+  }
+  if (searchInput) {
+    searchInput.disabled = streamsMode;
+    if (streamsMode) {
+      searchInput.value = "";
+    }
+  }
+  if (wipePickerButton) {
+    wipePickerButton.disabled = streamsMode;
+    if (streamsMode) {
+      closeWipeMenu();
+    }
+  }
+
+  if (streamsMode) {
+    renderStreams();
+    setStatus("Watching creator streams");
+  }
+}
 
 function formatLabel(statKey) {
   return statKey
@@ -240,6 +341,14 @@ function renderCategories() {
       document.querySelectorAll(".category-btn").forEach((n) => n.classList.remove("active"));
       button.classList.add("active");
       button.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+
+      syncViewMode();
+
+      if (isStreamsCategory()) {
+        resetRefreshCountdown();
+        return;
+      }
+
       await loadData();
     });
 
@@ -404,6 +513,10 @@ async function loadWipes() {
 }
 
 async function loadData(options = {}) {
+  if (isStreamsCategory()) {
+    return;
+  }
+
   const { silent = false } = options;
 
   if (isLoadingData) {
@@ -495,6 +608,7 @@ function startAutoRefresh() {
 renderCategories();
 updateCategoryNavButtons();
 updateClock();
+syncViewMode();
 
 searchInput.addEventListener("input", filterPlayers);
 if (wipePickerButton) {
