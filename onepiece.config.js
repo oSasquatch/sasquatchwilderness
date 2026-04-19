@@ -40,3 +40,21 @@ export const ONE_PIECE_SOURCES = [
     querySuffix: "english"
   }
 ];
+
+export const ONE_PIECE_PROVIDERS = [
+  {
+    key: "crunchyroll",
+    label: "Crunchyroll",
+    buildUrl: (query) => `https://www.crunchyroll.com/search?q=${encodeURIComponent(query)}`
+  },
+  {
+    key: "netflix",
+    label: "Netflix",
+    buildUrl: (query) => `https://www.netflix.com/search?q=${encodeURIComponent(query)}`
+  },
+  {
+    key: "hulu",
+    label: "Hulu",
+    buildUrl: (query) => `https://www.hulu.com/search?q=${encodeURIComponent(query)}`
+  }
+];

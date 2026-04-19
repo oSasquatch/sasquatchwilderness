@@ -519,13 +519,35 @@ h1 {
   filter: brightness(1.04);
 }
 
-.onepiece-frame {
+.onepiece-links {
   margin-top: 0.65rem;
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  border: 0;
-  border-radius: 8px;
-  background: #090f0c;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(140px, 1fr));
+  gap: 0.55rem;
+}
+
+.onepiece-link-card {
+  border: 1px solid #ffffff2a;
+  border-radius: 9px;
+  background: #111f19;
+  color: #e7f3e8;
+  padding: 0.62rem 0.68rem;
+  text-decoration: none;
+  display: grid;
+  gap: 0.22rem;
+}
+
+.onepiece-link-card strong {
+  font-size: 0.9rem;
+}
+
+.onepiece-link-card span {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.onepiece-link-card:hover {
+  border-color: #ffd29d;
 }
 
 .board-head {
@@ -711,6 +733,10 @@ footer a {
   .onepiece-controls {
     grid-template-columns: 1fr;
     align-items: stretch;
+  }
+
+  .onepiece-links {
+    grid-template-columns: 1fr;
   }
 
   th,
