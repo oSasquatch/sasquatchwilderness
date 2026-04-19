@@ -82,6 +82,41 @@ footer {
   font-size: 0.9rem;
 }
 
+.topbar-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.streams-toggle {
+  height: 2.08rem;
+  border-radius: 999px;
+  border: 1px solid #ffffff36;
+  background: #0f1713cc;
+  color: #e6f3e8;
+  padding: 0 0.9rem;
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.14s ease, transform 0.14s ease, background 0.14s ease;
+}
+
+.streams-toggle:hover {
+  border-color: #ffd29d;
+  transform: translateY(-1px);
+}
+
+.streams-toggle.active {
+  border-color: #ffd195;
+  background: linear-gradient(180deg, #f4a956, #cf6b24);
+  color: #25140c;
+}
+
+.streams-toggle:focus-visible {
+  outline: 2px solid #ffd9ab;
+  outline-offset: 2px;
+}
+
 .live-pill {
   display: inline-flex;
   align-items: center;
@@ -530,6 +565,7 @@ footer a {
 @media (max-width: 920px) {
   .topbar {
     padding: 0.75rem 0.9rem;
+    gap: 0.55rem;
   }
 
   .container {
@@ -636,6 +672,16 @@ footer a {
   .live-pill {
     padding: 0.35rem 0.62rem;
     font-size: 0.84rem;
+  }
+
+  .topbar-actions {
+    gap: 0.4rem;
+  }
+
+  .streams-toggle {
+    height: 1.95rem;
+    padding: 0 0.74rem;
+    font-size: 0.8rem;
   }
 
   .quick-stats {

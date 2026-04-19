@@ -124,12 +124,6 @@ const categories = [
       { key: "player_mission_started", label: "Missions Started" },
       { key: "player_mission_completed", label: "Missions Completed" }
     ]
-  },
-  {
-    label: "YouTube Streams",
-    slug: "streams",
-    sortBy: "",
-    columns: []
   }
 ];
 
@@ -154,6 +148,8 @@ const boardWrap = document.querySelector(".board-wrap");
 const streamsSection = document.querySelector("#streamsSection");
 const streamsGrid = document.querySelector("#streamsGrid");
 const streamsMeta = document.querySelector("#streamsMeta");
+const streamsToggle = document.querySelector("#streamsToggle");
+const filtersSection = document.querySelector(".filters");
 
 let selectedCategory = categories[0];
 let allPlayers = [];
@@ -166,9 +162,10 @@ let totalCount = 0;
 let isLoadingData = false;
 let autoRefreshTimer = null;
 let refreshCountdown = AUTO_REFRESH_SECONDS;
+let streamsMode = false;
 
 function isStreamsCategory() {
-  return selectedCategory.slug === "streams";
+  return streamsMode;
 }
 
 function getYouTubeEmbedUrl(channelId) {
@@ -258,6 +255,13 @@ function syncViewMode() {
   }
   if (streamsSection) {
     streamsSection.hidden = !streamsMode;
+  }
+  if (filtersSection) {
+    filtersSection.hidden = streamsMode;
+  }
+  if (streamsToggle) {
+    streamsToggle.classList.toggle("active", streamsMode);
+    streamsToggle.setAttribute("aria-pressed", streamsMode ? "true" : "false");
   }
   if (searchInput) {
     searchInput.disabled = streamsMode;
@@ -360,16 +364,12 @@ function renderCategories() {
     button.addEventListener("click", async () => {
       selectedCategory = category;
       page = 1;
+      streamsMode = false;
       document.querySelectorAll(".category-btn").forEach((n) => n.classList.remove("active"));
       button.classList.add("active");
       button.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
 
       syncViewMode();
-
-      if (isStreamsCategory()) {
-        resetRefreshCountdown();
-        return;
-      }
 
       await loadData();
     });
@@ -614,6 +614,10 @@ function startAutoRefresh() {
       return;
     }
 
+    if (isStreamsCategory()) {
+      return;
+    }
+
     if (isLoadingData) {
       return;
     }
@@ -641,6 +645,20 @@ if (wipePickerButton) {
     } else {
       openWipeMenu();
     }
+  });
+}
+
+if (streamsToggle) {
+  streamsToggle.addEventListener("click", async () => {
+    streamsMode = !streamsMode;
+    syncViewMode();
+
+    if (streamsMode) {
+      resetRefreshCountdown();
+      return;
+    }
+
+    await loadData();
   });
 }
 
