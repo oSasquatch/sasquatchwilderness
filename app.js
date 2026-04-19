@@ -4,7 +4,8 @@ import { ONE_PIECE_ARCS, ONE_PIECE_EPISODE_COUNT, ONE_PIECE_PROVIDERS, ONE_PIECE
 const API_BASE = "/api/leaderboard";
 const PAGE_SIZE = 500;
 const AUTO_REFRESH_SECONDS = 5;
-const ONE_PIECE_POPUP_SCALE = 0.46;
+const ONE_PIECE_POPUP_WIDTH = 760;
+const ONE_PIECE_POPUP_HEIGHT = 430;
 
 const categories = [
   {
@@ -328,8 +329,8 @@ function buildOnePieceQuery(episode, sourceKey) {
 }
 
 function openOnePiecePopup(url) {
-  const width = Math.max(520, Math.round(window.screen.availWidth * ONE_PIECE_POPUP_SCALE));
-  const height = Math.max(380, Math.round(window.screen.availHeight * ONE_PIECE_POPUP_SCALE));
+  const width = Math.min(ONE_PIECE_POPUP_WIDTH, Math.max(480, window.screen.availWidth - 40));
+  const height = Math.min(ONE_PIECE_POPUP_HEIGHT, Math.max(320, window.screen.availHeight - 80));
   const left = 0;
   const top = 0;
   const popup = window.open(
