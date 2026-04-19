@@ -300,14 +300,14 @@ function renderOnePieceEpisodesForArc() {
     onePieceEpisodeSelect.appendChild(option);
   }
 
-  onePieceEpisodeSelect.value = String(selectedArc.end);
+  // Default to the first episode in the selected arc for better initial hit rate.
+  onePieceEpisodeSelect.value = String(selectedArc.start);
 }
 
 function buildOnePieceEmbedUrl(episode, sourceKey) {
   const source = ONE_PIECE_SOURCES.find((item) => item.key === sourceKey) || ONE_PIECE_SOURCES[0];
-  const arc = getSelectedArc();
   const suffix = source?.querySuffix ? ` ${source.querySuffix}` : "";
-  const query = `One Piece ${arc.label} Episode ${episode}${suffix}`;
+  const query = `One Piece Episode ${episode}${suffix}`;
 
   const url = new URL("https://www.youtube.com/embed");
   url.searchParams.set("listType", "search");
