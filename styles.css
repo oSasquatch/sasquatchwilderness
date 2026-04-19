@@ -463,6 +463,71 @@ h1 {
   background: #101d17b3;
 }
 
+.onepiece-panel {
+  border: 1px solid #ffffff22;
+  border-radius: 11px;
+  background: #14231cd1;
+  padding: 0.72rem;
+  margin-bottom: 0.72rem;
+}
+
+.onepiece-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 0.65rem;
+  align-items: end;
+}
+
+.onepiece-field {
+  display: grid;
+  gap: 0.34rem;
+}
+
+.onepiece-field span {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.onepiece-field select {
+  height: 2.3rem;
+  border-radius: 9px;
+  border: 1px solid #ffffff30;
+  background: #14231cd9;
+  color: var(--text);
+  padding: 0 0.72rem;
+  font-size: 0.92rem;
+}
+
+.onepiece-field select:focus-visible,
+.onepiece-watch-btn:focus-visible {
+  outline: 2px solid #ffd9ab;
+  outline-offset: 2px;
+}
+
+.onepiece-watch-btn {
+  height: 2.3rem;
+  border-radius: 9px;
+  border: 1px solid #ffd195;
+  background: linear-gradient(180deg, #f4a956, #cf6b24);
+  color: #25140c;
+  font-weight: 700;
+  padding: 0 0.92rem;
+  cursor: pointer;
+}
+
+.onepiece-watch-btn:hover {
+  filter: brightness(1.04);
+}
+
+.onepiece-frame {
+  margin-top: 0.65rem;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 0;
+  border-radius: 8px;
+  background: #090f0c;
+}
+
 .board-head {
   display: flex;
   align-items: baseline;
@@ -641,6 +706,11 @@ footer a {
   .streams-grid {
     grid-template-columns: 1fr;
     gap: 0.55rem;
+  }
+
+  .onepiece-controls {
+    grid-template-columns: 1fr;
+    align-items: stretch;
   }
 
   th,

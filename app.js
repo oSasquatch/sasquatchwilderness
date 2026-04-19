@@ -1,4 +1,5 @@
 import { STREAM_CHANNELS } from "./streams.config.js";
+import { ONE_PIECE_EPISODE_COUNT, ONE_PIECE_SOURCES } from "./onepiece.config.js";
 
 const API_BASE = "/api/leaderboard";
 const PAGE_SIZE = 500;
@@ -150,6 +151,10 @@ const streamsGrid = document.querySelector("#streamsGrid");
 const streamsMeta = document.querySelector("#streamsMeta");
 const streamsToggle = document.querySelector("#streamsToggle");
 const filtersSection = document.querySelector(".filters");
+const onePieceEpisodeSelect = document.querySelector("#onePieceEpisodeSelect");
+const onePieceSourceSelect = document.querySelector("#onePieceSourceSelect");
+const onePieceWatchBtn = document.querySelector("#onePieceWatchBtn");
+const onePieceFrame = document.querySelector("#onePieceFrame");
 
 let selectedCategory = categories[0];
 let allPlayers = [];
@@ -244,34 +249,86 @@ function renderStreams() {
   });
 }
 
+function renderOnePieceOptions() {
+  if (!onePieceEpisodeSelect || !onePieceSourceSelect) {
+    return;
+  }
+
+  onePieceEpisodeSelect.innerHTML = "";
+  for (let episode = 1; episode <= ONE_PIECE_EPISODE_COUNT; episode += 1) {
+    const option = document.createElement("option");
+    option.value = String(episode);
+    option.textContent = `Episode ${episode}`;
+    onePieceEpisodeSelect.appendChild(option);
+  }
+
+  onePieceEpisodeSelect.value = String(ONE_PIECE_EPISODE_COUNT);
+
+  onePieceSourceSelect.innerHTML = "";
+  ONE_PIECE_SOURCES.forEach((source) => {
+    const option = document.createElement("option");
+    option.value = source.key;
+    option.textContent = source.label;
+    onePieceSourceSelect.appendChild(option);
+  });
+
+  updateOnePieceFrame();
+}
+
+function buildOnePieceEmbedUrl(episode, sourceKey) {
+  const source = ONE_PIECE_SOURCES.find((item) => item.key === sourceKey) || ONE_PIECE_SOURCES[0];
+  const suffix = source?.querySuffix ? ` ${source.querySuffix}` : "";
+  const query = `One Piece Episode ${episode}${suffix}`;
+
+  const url = new URL("https://www.youtube.com/embed");
+  url.searchParams.set("listType", "search");
+  url.searchParams.set("list", query);
+  url.searchParams.set("autoplay", "0");
+  url.searchParams.set("mute", "0");
+  url.searchParams.set("rel", "0");
+  url.searchParams.set("origin", window.location.origin);
+  return url.toString();
+}
+
+function updateOnePieceFrame() {
+  if (!onePieceEpisodeSelect || !onePieceSourceSelect || !onePieceFrame) {
+    return;
+  }
+
+  const episode = Number(onePieceEpisodeSelect.value || 1);
+  const sourceKey = onePieceSourceSelect.value;
+  onePieceFrame.src = buildOnePieceEmbedUrl(episode, sourceKey);
+}
+
 function syncViewMode() {
   const streamsMode = isStreamsCategory();
+  const customMode = streamsMode;
 
   if (quickStatsNode) {
-    quickStatsNode.hidden = streamsMode;
+    quickStatsNode.hidden = customMode;
   }
   if (boardWrap) {
-    boardWrap.hidden = streamsMode;
+    boardWrap.hidden = customMode;
   }
   if (streamsSection) {
     streamsSection.hidden = !streamsMode;
   }
   if (filtersSection) {
-    filtersSection.hidden = streamsMode;
+    filtersSection.hidden = customMode;
   }
   if (streamsToggle) {
     streamsToggle.classList.toggle("active", streamsMode);
     streamsToggle.setAttribute("aria-pressed", streamsMode ? "true" : "false");
   }
   if (searchInput) {
-    searchInput.disabled = streamsMode;
-    if (streamsMode) {
+    searchInput.disabled = customMode;
+    if (customMode) {
       searchInput.value = "";
     }
   }
   if (wipePickerButton) {
-    wipePickerButton.disabled = streamsMode;
-    if (streamsMode) {
+    wipePickerButton.disabled = customMode;
+    if (customMode) {
       closeWipeMenu();
     }
   }
@@ -632,6 +689,7 @@ function startAutoRefresh() {
 }
 
 renderCategories();
+renderOnePieceOptions();
 updateCategoryNavButtons();
 updateClock();
 syncViewMode();
@@ -660,6 +718,18 @@ if (streamsToggle) {
 
     await loadData();
   });
+}
+
+if (onePieceWatchBtn) {
+  onePieceWatchBtn.addEventListener("click", updateOnePieceFrame);
+}
+
+if (onePieceEpisodeSelect) {
+  onePieceEpisodeSelect.addEventListener("change", updateOnePieceFrame);
+}
+
+if (onePieceSourceSelect) {
+  onePieceSourceSelect.addEventListener("change", updateOnePieceFrame);
 }
 
 document.addEventListener("click", (event) => {

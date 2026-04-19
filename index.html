@@ -87,6 +87,27 @@
           <h2>YouTube Streams</h2>
           <p id="streamsMeta">Live creators from Sasquatch Wilderness</p>
         </div>
+        <section class="onepiece-panel" aria-label="One Piece episode player">
+          <div class="onepiece-controls">
+            <label class="onepiece-field">
+              <span>Episode</span>
+              <select id="onePieceEpisodeSelect"></select>
+            </label>
+            <label class="onepiece-field">
+              <span>Version</span>
+              <select id="onePieceSourceSelect"></select>
+            </label>
+            <button id="onePieceWatchBtn" class="onepiece-watch-btn" type="button">Load Episode</button>
+          </div>
+          <iframe
+            id="onePieceFrame"
+            class="onepiece-frame"
+            title="One Piece Episode"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            referrerpolicy="strict-origin-when-cross-origin"
+            allowfullscreen
+          ></iframe>
+        </section>
         <div id="streamsGrid" class="streams-grid"></div>
       </section>
     </main>
