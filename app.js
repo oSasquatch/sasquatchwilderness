@@ -344,6 +344,13 @@ function openOnePiecePopup(url) {
     return;
   }
 
+  try {
+    popup.moveTo(0, 0);
+    popup.resizeTo(width, height);
+  } catch {
+    // Ignore browser restrictions on popup window controls.
+  }
+
   popup.focus();
 }
 
