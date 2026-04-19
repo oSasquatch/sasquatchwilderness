@@ -284,6 +284,11 @@ function renderOnePieceOptions() {
     onePieceProviderSelect.appendChild(option);
   });
 
+  const defaultProvider = ONE_PIECE_PROVIDERS.find((provider) => provider.key === "netflix") || ONE_PIECE_PROVIDERS[0];
+  if (defaultProvider) {
+    onePieceProviderSelect.value = defaultProvider.key;
+  }
+
   renderOnePieceLinks();
 }
 
@@ -339,7 +344,7 @@ function renderOnePieceLinks() {
   onePieceLinks.innerHTML = ONE_PIECE_PROVIDERS.map((provider) => {
     const href = provider.buildUrl(query);
     return `
-      <a class="onepiece-link-card" href="${href}" target="_blank" rel="noreferrer">
+      <a class="onepiece-link-card" href="${href}">
         <strong>${provider.label}</strong>
         <span>${arc.label} • Episode ${episode}</span>
       </a>
