@@ -21,11 +21,6 @@ export const ONE_PIECE_SOURCES = [
     querySuffix: "subbed"
   },
   {
-    key: "dubbed",
-    label: "Dubbed",
-    querySuffix: "dubbed"
-  },
-  {
     key: "english",
     label: "English",
     querySuffix: "english"
