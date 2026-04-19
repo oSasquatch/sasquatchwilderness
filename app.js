@@ -9,6 +9,7 @@ const ONE_PIECE_POPUP_HEIGHT = 430;
 const ONE_PIECE_POPUP_LEFT_OFFSET = -40;
 const ONE_PIECE_POPUP_TOP_OFFSET = -20;
 const ONE_PIECE_PREFS_KEY = "sasq.onepiece.prefs.v1";
+const PINNED_PLAYERS_KEY = "sasq.pinned.players.v1";
 
 const categories = [
   {
@@ -140,12 +141,18 @@ const quickStatsNode = document.querySelector("#quickStats");
 const tableHead = document.querySelector("#leaderboardHead");
 const tableBody = document.querySelector("#leaderboardRows");
 const searchInput = document.querySelector("#playerSearch");
+const pinnedOnlyToggle = document.querySelector("#pinnedOnlyToggle");
+const refreshIntervalSelect = document.querySelector("#refreshInterval");
+const autoRefreshToggle = document.querySelector("#autoRefreshToggle");
+const refreshNowBtn = document.querySelector("#refreshNowBtn");
+const shareStateBtn = document.querySelector("#shareStateBtn");
 const wipePickerButton = document.querySelector("#wipePickerButton");
 const wipePickerLabel = document.querySelector("#wipePickerLabel");
 const wipeMenu = document.querySelector("#wipeMenu");
 const boardMeta = document.querySelector("#boardMeta");
 const clockNode = document.querySelector("#clock");
 const liveStatus = document.querySelector("#liveStatus");
+const updateMeta = document.querySelector("#updateMeta");
 const prevPageBtn = document.querySelector("#prevPage");
 const nextPageBtn = document.querySelector("#nextPage");
 const pageLabel = document.querySelector("#pageLabel");
@@ -165,6 +172,9 @@ const onePieceWatchBtn = document.querySelector("#onePieceWatchBtn");
 const onePieceLinks = document.querySelector("#onePieceLinks");
 const onePieceFrame = document.querySelector("#onePieceFrame");
 const onePieceNowWatching = document.querySelector("#onePieceNowWatching");
+const shortcutsModal = document.querySelector("#shortcutsModal");
+const closeShortcutsBtn = document.querySelector("#closeShortcutsBtn");
+const toastContainer = document.querySelector("#toastContainer");
 
 let selectedCategory = categories[0];
 let allPlayers = [];
@@ -177,8 +187,195 @@ let totalCount = 0;
 let isLoadingData = false;
 let autoRefreshTimer = null;
 let refreshCountdown = AUTO_REFRESH_SECONDS;
+let refreshIntervalSeconds = AUTO_REFRESH_SECONDS;
+let autoRefreshEnabled = true;
 let streamsMode = false;
 let popupStatusMessage = "";
+let pinnedOnlyMode = false;
+let pinnedPlayers = new Set();
+let lastLatencyMs = null;
+let lastUpdatedAt = null;
+
+function showToast(message, type = "info") {
+  if (!toastContainer) {
+    return;
+  }
+
+  const item = document.createElement("div");
+  item.className = `toast ${type === "warn" ? "warn" : ""}`.trim();
+  item.textContent = message;
+  toastContainer.appendChild(item);
+  setTimeout(() => item.remove(), 2600);
+}
+
+function loadPinnedPlayers() {
+  try {
+    const raw = localStorage.getItem(PINNED_PLAYERS_KEY);
+    if (!raw) {
+      return new Set();
+    }
+
+    const values = JSON.parse(raw);
+    if (!Array.isArray(values)) {
+      return new Set();
+    }
+
+    return new Set(values.filter((name) => typeof name === "string"));
+  } catch {
+    return new Set();
+  }
+}
+
+function savePinnedPlayers() {
+  try {
+    localStorage.setItem(PINNED_PLAYERS_KEY, JSON.stringify(Array.from(pinnedPlayers.values())));
+  } catch {
+    // Ignore storage errors.
+  }
+}
+
+function updateMetaLine() {
+  if (!updateMeta) {
+    return;
+  }
+
+  const updated = lastUpdatedAt ? lastUpdatedAt.toLocaleTimeString() : "--:--:--";
+  const latency = lastLatencyMs == null ? "-- ms" : `${Math.round(lastLatencyMs)} ms`;
+  updateMeta.textContent = `Updated ${updated} | API latency ${latency}`;
+}
+
+function getUrlState() {
+  const params = new URLSearchParams(window.location.search);
+  return {
+    category: params.get("cat") || "",
+    arcKey: params.get("arc") || "",
+    episode: Number(params.get("ep") || 0),
+    source: params.get("src") || "",
+    streams: params.get("streams") === "1",
+    pinnedOnly: params.get("pinned") === "1",
+    refresh: Number(params.get("refresh") || 0),
+    auto: params.get("auto") !== "0"
+  };
+}
+
+function writeUrlState() {
+  const params = new URLSearchParams(window.location.search);
+  params.set("cat", selectedCategory.slug);
+  if (streamsMode) {
+    params.set("streams", "1");
+  } else {
+    params.delete("streams");
+  }
+
+  if (pinnedOnlyMode) {
+    params.set("pinned", "1");
+  } else {
+    params.delete("pinned");
+  }
+
+  params.set("refresh", String(refreshIntervalSeconds));
+  params.set("auto", autoRefreshEnabled ? "1" : "0");
+
+  if (onePieceArcSelect?.value) {
+    params.set("arc", onePieceArcSelect.value);
+  }
+  if (onePieceEpisodeSelect?.value) {
+    params.set("ep", onePieceEpisodeSelect.value);
+  }
+  if (onePieceSourceSelect?.value) {
+    params.set("src", onePieceSourceSelect.value);
+  }
+
+  const next = `${window.location.pathname}?${params.toString()}`;
+  window.history.replaceState({}, "", next);
+}
+
+function togglePinnedOnly() {
+  pinnedOnlyMode = !pinnedOnlyMode;
+  if (pinnedOnlyToggle) {
+    pinnedOnlyToggle.setAttribute("aria-pressed", pinnedOnlyMode ? "true" : "false");
+  }
+  filterPlayers();
+  writeUrlState();
+}
+
+function isPinnedPlayer(name) {
+  return pinnedPlayers.has(String(name || ""));
+}
+
+function handleSearchCommand(rawValue) {
+  const value = rawValue.trim();
+  if (!value.startsWith("/")) {
+    return false;
+  }
+
+  const [command, ...rest] = value.slice(1).split(" ");
+  const arg = rest.join(" ").trim();
+  const lower = command.toLowerCase();
+
+  if (lower === "player") {
+    searchInput.value = arg;
+    filterPlayers();
+    showToast(`Searching player: ${arg || "all"}`);
+    return true;
+  }
+
+  if (lower === "ep") {
+    const episode = Number(arg || 0);
+    if (episode > 0) {
+      setEpisodeAcrossArcs(episode);
+      renderOnePieceLinks();
+      showToast(`Jumped to episode ${episode}`);
+    }
+    return true;
+  }
+
+  if (lower === "arc") {
+    const target = ONE_PIECE_ARCS.find((arc) => arc.key.includes(arg.toLowerCase()) || arc.label.toLowerCase().includes(arg.toLowerCase()));
+    if (target && onePieceArcSelect) {
+      onePieceArcSelect.value = target.key;
+      renderOnePieceEpisodesForArc();
+      renderOnePieceLinks();
+      showToast(`Jumped to ${target.label}`);
+    }
+    return true;
+  }
+
+  return false;
+}
+
+function applyInitialUrlState() {
+  const urlState = getUrlState();
+
+  if (urlState.category) {
+    const match = categories.find((category) => category.slug === urlState.category);
+    if (match) {
+      selectedCategory = match;
+    }
+  }
+
+  if (Number.isFinite(urlState.refresh) && urlState.refresh >= 5) {
+    refreshIntervalSeconds = urlState.refresh;
+  }
+  if (typeof urlState.auto === "boolean") {
+    autoRefreshEnabled = urlState.auto;
+  }
+  pinnedOnlyMode = urlState.pinnedOnly;
+  streamsMode = urlState.streams;
+
+  if (refreshIntervalSelect) {
+    refreshIntervalSelect.value = String(refreshIntervalSeconds);
+  }
+  if (autoRefreshToggle) {
+    autoRefreshToggle.setAttribute("aria-pressed", autoRefreshEnabled ? "true" : "false");
+    autoRefreshToggle.textContent = autoRefreshEnabled ? "Auto On" : "Auto Off";
+  }
+  if (pinnedOnlyToggle) {
+    pinnedOnlyToggle.setAttribute("aria-pressed", pinnedOnlyMode ? "true" : "false");
+  }
+
+  return urlState;
+}
 
 function isMobileView() {
   return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.matchMedia("(max-width: 920px)").matches;
@@ -296,6 +493,7 @@ function renderStreams() {
     card.innerHTML = `
       <div class="stream-card-head">
         <strong>${safeName}</strong>
+        <span class="stream-status">Checking...</span>
         <a href="${channelUrl}" target="_blank" rel="noreferrer">Channel</a>
       </div>
       <iframe
@@ -307,6 +505,22 @@ function renderStreams() {
         allowfullscreen
       ></iframe>
     `;
+
+    const statusNode = card.querySelector(".stream-status");
+    const frameNode = card.querySelector(".stream-frame");
+    if (statusNode && frameNode) {
+      frameNode.addEventListener("load", () => {
+        statusNode.textContent = "Online";
+        statusNode.classList.add("online");
+        statusNode.classList.remove("offline");
+      });
+
+      frameNode.addEventListener("error", () => {
+        statusNode.textContent = "Unavailable";
+        statusNode.classList.add("offline");
+        statusNode.classList.remove("online");
+      });
+    }
 
     streamsGrid.appendChild(card);
   });
@@ -337,14 +551,31 @@ function renderOnePieceOptions() {
   });
 
   const prefs = loadOnePiecePrefs();
+  const urlState = getUrlState();
+  const sourceFromUrl = urlState.source;
+  if (sourceFromUrl && ONE_PIECE_SOURCES.some((source) => source.key === sourceFromUrl)) {
+    onePieceSourceSelect.value = sourceFromUrl;
+  }
+
   if (prefs?.sourceKey && ONE_PIECE_SOURCES.some((source) => source.key === prefs.sourceKey)) {
     onePieceSourceSelect.value = prefs.sourceKey;
+  }
+
+  if (sourceFromUrl && ONE_PIECE_SOURCES.some((source) => source.key === sourceFromUrl)) {
+    onePieceSourceSelect.value = sourceFromUrl;
   }
 
   if (prefs?.episode) {
     setEpisodeAcrossArcs(prefs.episode);
   } else if (prefs?.arcKey && ONE_PIECE_ARCS.some((arc) => arc.key === prefs.arcKey)) {
     onePieceArcSelect.value = prefs.arcKey;
+    renderOnePieceEpisodesForArc();
+  }
+
+  if (urlState.episode > 0) {
+    setEpisodeAcrossArcs(urlState.episode);
+  } else if (urlState.arcKey && ONE_PIECE_ARCS.some((arc) => arc.key === urlState.arcKey)) {
+    onePieceArcSelect.value = urlState.arcKey;
     renderOnePieceEpisodesForArc();
   }
 
@@ -389,6 +620,7 @@ function openOnePiecePopup(url) {
   if (isMobileView()) {
     window.location.assign(url);
     popupStatusMessage = "Opened Netflix directly for mobile viewing.";
+    showToast(popupStatusMessage);
     return true;
   }
 
@@ -406,6 +638,7 @@ function openOnePiecePopup(url) {
 
   if (!popup) {
     popupStatusMessage = "Popup blocked. Use the fallback button to open Netflix in this tab.";
+    showToast(popupStatusMessage, "warn");
     return false;
   }
 
@@ -418,6 +651,7 @@ function openOnePiecePopup(url) {
 
   popup.focus();
   popupStatusMessage = "Popup opened. Keeping Streams visible in this tab.";
+  showToast("Opened Netflix popup");
   return true;
 }
 
@@ -481,6 +715,7 @@ function renderOnePieceLinks() {
 
   saveOnePiecePrefs();
   updateNowWatching(context);
+  writeUrlState();
 
   if (onePieceFrame) {
     onePieceFrame.hidden = !canEmbed;
@@ -623,6 +858,7 @@ function renderTableHead() {
   tableHead.innerHTML = `
     <tr>
       <th>#</th>
+      <th class="pin-cell">★</th>
       <th>Player</th>
       ${metricHeadings}
     </tr>
@@ -650,6 +886,7 @@ function renderCategories() {
       button.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
 
       syncViewMode();
+      writeUrlState();
 
       await loadData();
     });
@@ -700,6 +937,7 @@ function renderTable() {
   filteredPlayers.forEach((player) => {
     const rank = player.rank ?? "-";
     const name = player.username || "Unknown";
+    const pinned = isPinnedPlayer(name);
     const metricCells = selectedCategory.columns
       .map((column) => {
         const value = formatCellValue(column, player.stats?.[column.key]);
@@ -709,8 +947,12 @@ function renderTable() {
       .join("");
 
     const row = document.createElement("tr");
+    if (pinned) {
+      row.classList.add("row-pinned");
+    }
     row.innerHTML = `
       <td class="rank">#${rank}</td>
+      <td class="pin-cell"><button class="pin-btn ${pinned ? "active" : ""}" type="button" data-pin-user="${escapeHtml(name)}" aria-label="Pin ${escapeHtml(name)}">★</button></td>
       <td>${name}</td>
       ${metricCells}
     `;
@@ -723,7 +965,28 @@ function renderTable() {
 
 function filterPlayers() {
   const term = searchInput.value.trim().toLowerCase();
-  filteredPlayers = allPlayers.filter((player) => (player.username || "").toLowerCase().includes(term));
+  filteredPlayers = allPlayers.filter((player) => {
+    const name = (player.username || "").toLowerCase();
+    if (!name.includes(term)) {
+      return false;
+    }
+
+    if (pinnedOnlyMode) {
+      return isPinnedPlayer(player.username || "");
+    }
+
+    return true;
+  });
+
+  filteredPlayers.sort((a, b) => {
+    const aPinned = isPinnedPlayer(a.username || "") ? 1 : 0;
+    const bPinned = isPinnedPlayer(b.username || "") ? 1 : 0;
+    if (aPinned !== bPinned) {
+      return bPinned - aPinned;
+    }
+    return Number(a.rank || 999999) - Number(b.rank || 999999);
+  });
+
   renderTable();
 }
 
@@ -753,6 +1016,7 @@ function renderWipeOptions() {
       page = 1;
       wipePickerLabel.textContent = item.label;
       closeWipeMenu();
+      writeUrlState();
       await loadData();
     });
 
@@ -782,11 +1046,16 @@ function closeWipeMenu() {
 }
 
 function updateClock() {
+  if (!autoRefreshEnabled) {
+    clockNode.textContent = "off";
+    return;
+  }
+
   clockNode.textContent = `${Math.max(0, refreshCountdown)}s`;
 }
 
 function resetRefreshCountdown() {
-  refreshCountdown = AUTO_REFRESH_SECONDS;
+  refreshCountdown = refreshIntervalSeconds;
   updateClock();
 }
 
@@ -826,6 +1095,8 @@ async function loadData(options = {}) {
   }
 
   isLoadingData = true;
+  boardWrap?.classList.add("is-loading");
+  const requestStartedAt = performance.now();
 
   try {
     if (!silent) {
@@ -853,6 +1124,10 @@ async function loadData(options = {}) {
       fetchJson(totalsUrl.toString())
     ]);
 
+    lastLatencyMs = performance.now() - requestStartedAt;
+    lastUpdatedAt = new Date();
+    updateMetaLine();
+
     allPlayers = Array.isArray(leaderboardResponse.players) ? leaderboardResponse.players : [];
     filteredPlayers = [...allPlayers];
     totalCount = Number(leaderboardResponse.totalCount || totalsResponse.totalPlayers || allPlayers.length);
@@ -879,6 +1154,7 @@ async function loadData(options = {}) {
   } finally {
     resetRefreshCountdown();
     isLoadingData = false;
+    boardWrap?.classList.remove("is-loading");
   }
 }
 
@@ -894,7 +1170,7 @@ function startAutoRefresh() {
       return;
     }
 
-    if (isStreamsCategory()) {
+    if (isStreamsCategory() || !autoRefreshEnabled) {
       return;
     }
 
@@ -911,13 +1187,108 @@ function startAutoRefresh() {
   }, 1000);
 }
 
+pinnedPlayers = loadPinnedPlayers();
+const initialUrlState = applyInitialUrlState();
+
 renderCategories();
 renderOnePieceOptions();
 updateCategoryNavButtons();
+updateMetaLine();
 updateClock();
 syncViewMode();
 
+if (initialUrlState.streams) {
+  streamsMode = true;
+  syncViewMode();
+}
+
 searchInput.addEventListener("input", filterPlayers);
+searchInput.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter") {
+    return;
+  }
+
+  if (handleSearchCommand(searchInput.value)) {
+    event.preventDefault();
+    writeUrlState();
+  }
+});
+
+if (pinnedOnlyToggle) {
+  pinnedOnlyToggle.addEventListener("click", togglePinnedOnly);
+}
+
+if (refreshIntervalSelect) {
+  refreshIntervalSelect.addEventListener("change", () => {
+    refreshIntervalSeconds = Math.max(5, Number(refreshIntervalSelect.value || AUTO_REFRESH_SECONDS));
+    resetRefreshCountdown();
+    writeUrlState();
+    showToast(`Refresh set to ${refreshIntervalSeconds}s`);
+  });
+}
+
+if (autoRefreshToggle) {
+  autoRefreshToggle.addEventListener("click", () => {
+    autoRefreshEnabled = !autoRefreshEnabled;
+    autoRefreshToggle.setAttribute("aria-pressed", autoRefreshEnabled ? "true" : "false");
+    autoRefreshToggle.textContent = autoRefreshEnabled ? "Auto On" : "Auto Off";
+    resetRefreshCountdown();
+    writeUrlState();
+  });
+}
+
+if (refreshNowBtn) {
+  refreshNowBtn.addEventListener("click", async () => {
+    await loadData();
+    showToast("Leaderboard refreshed");
+  });
+}
+
+if (shareStateBtn) {
+  shareStateBtn.addEventListener("click", async () => {
+    writeUrlState();
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      showToast("Copied share link");
+    } catch {
+      showToast("Copy blocked. You can copy the URL manually.", "warn");
+    }
+  });
+}
+
+if (tableBody) {
+  tableBody.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return;
+    }
+
+    const pinButton = target.closest("button[data-pin-user]");
+    if (!pinButton) {
+      return;
+    }
+
+    const username = pinButton.getAttribute("data-pin-user") || "";
+    if (!username) {
+      return;
+    }
+
+    if (pinnedPlayers.has(username)) {
+      pinnedPlayers.delete(username);
+      showToast(`Unpinned ${username}`);
+    } else {
+      pinnedPlayers.add(username);
+      showToast(`Pinned ${username}`);
+    }
+
+    savePinnedPlayers();
+    filterPlayers();
+  });
+}
+
+if (closeShortcutsBtn && shortcutsModal) {
+  closeShortcutsBtn.addEventListener("click", () => shortcutsModal.close());
+}
 if (wipePickerButton) {
   wipePickerButton.addEventListener("click", () => {
     const isOpen = wipePickerButton.getAttribute("aria-expanded") === "true";
@@ -933,6 +1304,7 @@ if (streamsToggle) {
   streamsToggle.addEventListener("click", async () => {
     streamsMode = !streamsMode;
     syncViewMode();
+    writeUrlState();
 
     if (streamsMode) {
       resetRefreshCountdown();
@@ -1044,6 +1416,9 @@ document.addEventListener("click", (event) => {
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
     closeWipeMenu();
+    if (shortcutsModal?.open) {
+      shortcutsModal.close();
+    }
   }
 
   const target = event.target;
@@ -1052,6 +1427,16 @@ document.addEventListener("keydown", (event) => {
   }
 
   if (!streamsMode) {
+    if (event.key === "?" && shortcutsModal) {
+      event.preventDefault();
+      shortcutsModal.showModal();
+    }
+    return;
+  }
+
+  if (event.key === "?" && shortcutsModal) {
+    event.preventDefault();
+    shortcutsModal.showModal();
     return;
   }
 

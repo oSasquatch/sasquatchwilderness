@@ -44,6 +44,16 @@
         </div>
         <div class="controls">
           <input id="playerSearch" type="search" placeholder="Search players..." aria-label="Search players" />
+          <button id="pinnedOnlyToggle" class="mini-btn" type="button" aria-pressed="false">Pinned Only</button>
+          <select id="refreshInterval" class="mini-select" aria-label="Refresh interval">
+            <option value="5" selected>5s</option>
+            <option value="10">10s</option>
+            <option value="30">30s</option>
+            <option value="60">60s</option>
+          </select>
+          <button id="autoRefreshToggle" class="mini-btn" type="button" aria-pressed="true">Auto On</button>
+          <button id="refreshNowBtn" class="mini-btn" type="button">Refresh</button>
+          <button id="shareStateBtn" class="mini-btn" type="button">Share View</button>
           <div class="wipe-picker">
             <button
               id="wipePickerButton"
@@ -69,6 +79,7 @@
           <p id="boardMeta">249 players</p>
         </div>
         <p id="liveStatus" class="live-status" aria-live="polite">Connecting to live API...</p>
+        <p id="updateMeta" class="update-meta" aria-live="polite"></p>
         <div class="table-shell">
           <table>
             <thead id="leaderboardHead"></thead>
@@ -117,6 +128,18 @@
       <p>Sasquatch Wilderness | Powered by Rustoria</p>
       <a href="https://twitch.tv/theburntpeanut" target="_blank" rel="noreferrer">twitch.tv/theburntpeanut</a>
     </footer>
+
+    <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="false"></div>
+
+    <dialog id="shortcutsModal" class="shortcuts-modal">
+      <div class="shortcuts-card">
+        <h3>Shortcuts</h3>
+        <p>Arrow Left: previous episode</p>
+        <p>Arrow Right: next episode</p>
+        <p>? : open this panel</p>
+        <button id="closeShortcutsBtn" class="mini-btn" type="button">Close</button>
+      </div>
+    </dialog>
 
     <script type="module" src="./app.js"></script>
   </body>
