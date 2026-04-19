@@ -12,6 +12,31 @@ const PLAYER_Y = -PLAYER_EDGE_COMPENSATION_Y;
 let mainWindow;
 let playerWindow;
 
+function wirePlayerCloseShortcuts(win) {
+  win.webContents.on("before-input-event", (event, input) => {
+    const key = String(input.key || "").toLowerCase();
+    const ctrlOrCmd = Boolean(input.control || input.meta);
+    const shift = Boolean(input.shift);
+
+    if (key === "escape") {
+      event.preventDefault();
+      win.close();
+      return;
+    }
+
+    if (ctrlOrCmd && key === "w") {
+      event.preventDefault();
+      win.close();
+      return;
+    }
+
+    if (ctrlOrCmd && shift && key === "w") {
+      event.preventDefault();
+      win.close();
+    }
+  });
+}
+
 function createPlayerWindow(targetUrl) {
   if (!playerWindow || playerWindow.isDestroyed()) {
     playerWindow = new BrowserWindow({
@@ -41,6 +66,8 @@ function createPlayerWindow(targetUrl) {
     playerWindow.on("closed", () => {
       playerWindow = null;
     });
+
+    wirePlayerCloseShortcuts(playerWindow);
   }
 
   playerWindow.setBounds({
