@@ -21,7 +21,7 @@ export const STREAM_CHANNELS = [
 	{
 		name: "Hutch",
 		platform: "twitch",
-		channel: "hutch"
+		channel: "hutchmf"
 	},
 	{
 		name: "Cloakzy",
