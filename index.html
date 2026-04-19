@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Leaderboards | Sasquatch Wilderness Rust Server</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Staatliches&family=Space+Grotesk:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page-bg" aria-hidden="true"></div>
+
+    <header class="topbar">
+      <div class="brand">
+        <img class="nut" src="./steam-avatar.jpg" alt="" aria-hidden="true" />
+        <div>
+          <p class="brand-name">Sasquatch Wilderness</p>
+          <p class="brand-sub">Rust Server Stats</p>
+        </div>
+      </div>
+      <div class="live-pill">
+        <span class="dot"></span>
+        <span>Live</span>
+        <span id="clock">5s</span>
+      </div>
+    </header>
+
+    <main class="container">
+      <h1>Sasquatch Wilderness Server Leaderboards</h1>
+
+      <section class="filters" aria-label="Categories and filters">
+        <div class="category-nav">
+          <button id="catPrev" class="cat-nav-btn" type="button" aria-label="Previous categories">&#8249;</button>
+          <div id="categoryBar" class="category-bar" role="tablist" aria-label="Stat categories"></div>
+          <button id="catNext" class="cat-nav-btn" type="button" aria-label="Next categories">&#8250;</button>
+        </div>
+        <div class="controls">
+          <input id="playerSearch" type="search" placeholder="Search players..." aria-label="Search players" />
+          <div class="wipe-picker">
+            <button
+              id="wipePickerButton"
+              class="wipe-picker-btn"
+              type="button"
+              aria-haspopup="listbox"
+              aria-expanded="false"
+              aria-controls="wipeMenu"
+            >
+              <span id="wipePickerLabel">Current Wipe</span>
+              <span class="wipe-caret" aria-hidden="true">▾</span>
+            </button>
+            <ul id="wipeMenu" class="wipe-menu" role="listbox" aria-label="Select wipe" hidden></ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="quick-stats" id="quickStats" aria-label="Server quick stats"></section>
+
+      <section class="board-wrap" aria-label="Top players">
+        <div class="board-head">
+          <h2>Top Players</h2>
+          <p id="boardMeta">249 players</p>
+        </div>
+        <p id="liveStatus" class="live-status" aria-live="polite">Connecting to live API...</p>
+        <div class="table-shell">
+          <table>
+            <thead id="leaderboardHead"></thead>
+            <tbody id="leaderboardRows"></tbody>
+          </table>
+        </div>
+        <div class="pager">
+          <button id="prevPage" class="page-btn" type="button">Previous</button>
+          <span id="pageLabel">Page 1</span>
+          <button id="nextPage" class="page-btn" type="button">Next</button>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p>Sasquatch Wilderness | Powered by Rustoria</p>
+      <a href="https://twitch.tv/theburntpeanut" target="_blank" rel="noreferrer">twitch.tv/theburntpeanut</a>
+    </footer>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
