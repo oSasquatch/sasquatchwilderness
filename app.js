@@ -326,6 +326,21 @@ function buildOnePieceQuery(episode, sourceKey) {
   return `One Piece ${arc.label} Episode ${episode}${suffix}`;
 }
 
+function openOnePiecePopup(url) {
+  const popup = window.open(
+    url,
+    "sasquatchOnePieceViewer",
+    "popup=yes,width=1360,height=860,menubar=no,toolbar=no,location=yes,status=no,resizable=yes,scrollbars=yes"
+  );
+
+  if (!popup) {
+    window.location.assign(url);
+    return;
+  }
+
+  popup.focus();
+}
+
 function renderOnePieceLinks() {
   if (!onePieceEpisodeSelect || !onePieceSourceSelect || !onePieceLinks || !onePieceProviderSelect) {
     return;
@@ -348,7 +363,7 @@ function renderOnePieceLinks() {
   const providerCards = ONE_PIECE_PROVIDERS.map((provider) => {
     const href = provider.buildUrl(query);
     return `
-      <a class="onepiece-link-card" href="${href}">
+      <a class="onepiece-link-card" href="${href}" data-popup-link="true" rel="noreferrer">
         <strong>${provider.label}</strong>
         <span>${arc.label} • Episode ${episode}</span>
       </a>
@@ -356,15 +371,15 @@ function renderOnePieceLinks() {
   }).join("");
 
   const openInTabCard = `
-    <a class="onepiece-link-card onepiece-link-primary" href="${selectedProviderUrl}">
-      <strong>Open ${escapeHtml(selectedProvider.label)} in this tab</strong>
+    <a class="onepiece-link-card onepiece-link-primary" href="${selectedProviderUrl}" data-popup-link="true" rel="noreferrer">
+      <strong>Open ${escapeHtml(selectedProvider.label)} in popup</strong>
       <span>${arc.label} • Episode ${episode}</span>
     </a>
   `;
 
   const blockedMessage = canEmbed
     ? ""
-    : `<p class="onepiece-note">${escapeHtml(selectedProvider.label)} blocks embedded playback, so use the button below to keep watching in this tab.</p>`;
+    : `<p class="onepiece-note">${escapeHtml(selectedProvider.label)} blocks embedded playback, so use the popup button below to keep Sasquatch open.</p>`;
 
   onePieceLinks.innerHTML = `${blockedMessage}${openInTabCard}${providerCards}`;
 }
@@ -819,6 +834,23 @@ if (onePieceSourceSelect) {
 
 if (onePieceProviderSelect) {
   onePieceProviderSelect.addEventListener("change", renderOnePieceLinks);
+}
+
+if (onePieceLinks) {
+  onePieceLinks.addEventListener("click", (event) => {
+    const link = event.target.closest('a[data-popup-link="true"]');
+    if (!link) {
+      return;
+    }
+
+    event.preventDefault();
+    const href = link.getAttribute("href");
+    if (!href) {
+      return;
+    }
+
+    openOnePiecePopup(href);
+  });
 }
 
 document.addEventListener("click", (event) => {
