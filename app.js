@@ -1,5 +1,6 @@
 const API_BASE = "/api/leaderboard";
 const PAGE_SIZE = 500;
+const AUTO_REFRESH_SECONDS = 5;
 
 const categories = [
   {
@@ -152,6 +153,7 @@ let page = 1;
 let totalCount = 0;
 let isLoadingData = false;
 let autoRefreshTimer = null;
+let refreshCountdown = AUTO_REFRESH_SECONDS;
 
 function formatLabel(statKey) {
   return statKey
@@ -368,12 +370,13 @@ function closeWipeMenu() {
   wipePickerButton.setAttribute("aria-expanded", "false");
 }
 
-function runLiveClock() {
-  let tick = 5;
-  setInterval(() => {
-    tick = tick <= 1 ? 5 : tick - 1;
-    clockNode.textContent = `${tick}s`;
-  }, 1000);
+function updateClock() {
+  clockNode.textContent = `${Math.max(0, refreshCountdown)}s`;
+}
+
+function resetRefreshCountdown() {
+  refreshCountdown = AUTO_REFRESH_SECONDS;
+  updateClock();
 }
 
 async function fetchJson(url) {
@@ -459,6 +462,7 @@ async function loadData(options = {}) {
     updatePager();
     console.error(error);
   } finally {
+    resetRefreshCountdown();
     isLoadingData = false;
   }
 }
@@ -468,18 +472,29 @@ function startAutoRefresh() {
     clearInterval(autoRefreshTimer);
   }
 
+  resetRefreshCountdown();
+
   autoRefreshTimer = setInterval(async () => {
     if (document.visibilityState !== "visible") {
       return;
     }
 
-    await loadData({ silent: true });
-  }, 5000);
+    if (isLoadingData) {
+      return;
+    }
+
+    refreshCountdown -= 1;
+    updateClock();
+
+    if (refreshCountdown <= 0) {
+      await loadData({ silent: true });
+    }
+  }, 1000);
 }
 
 renderCategories();
 updateCategoryNavButtons();
-runLiveClock();
+updateClock();
 
 searchInput.addEventListener("input", filterPlayers);
 if (wipePickerButton) {
