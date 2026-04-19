@@ -150,6 +150,8 @@ let availableWipes = [];
 let selectedWipe = null;
 let page = 1;
 let totalCount = 0;
+let isLoadingData = false;
+let autoRefreshTimer = null;
 
 function formatLabel(statKey) {
   return statKey
@@ -398,9 +400,20 @@ async function loadWipes() {
   renderWipeOptions();
 }
 
-async function loadData() {
+async function loadData(options = {}) {
+  const { silent = false } = options;
+
+  if (isLoadingData) {
+    return;
+  }
+
+  isLoadingData = true;
+
   try {
-    setStatus(`Loading ${selectedCategory.label}...`);
+    if (!silent) {
+      setStatus(`Loading ${selectedCategory.label}...`);
+    }
+
     const leaderboardUrl = new URL(API_BASE, window.location.origin);
     leaderboardUrl.searchParams.set("category", selectedCategory.slug);
     leaderboardUrl.searchParams.set("sortBy", selectedCategory.sortBy);
@@ -445,7 +458,23 @@ async function loadData() {
     renderTable();
     updatePager();
     console.error(error);
+  } finally {
+    isLoadingData = false;
   }
+}
+
+function startAutoRefresh() {
+  if (autoRefreshTimer) {
+    clearInterval(autoRefreshTimer);
+  }
+
+  autoRefreshTimer = setInterval(async () => {
+    if (document.visibilityState !== "visible") {
+      return;
+    }
+
+    await loadData({ silent: true });
+  }, 5000);
 }
 
 renderCategories();
@@ -512,6 +541,7 @@ nextPageBtn.addEventListener("click", async () => {
 async function bootstrap() {
   await loadWipes();
   await loadData();
+  startAutoRefresh();
 }
 
 bootstrap();
