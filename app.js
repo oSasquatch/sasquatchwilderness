@@ -6,8 +6,8 @@ const PAGE_SIZE = 500;
 const AUTO_REFRESH_SECONDS = 5;
 const ONE_PIECE_POPUP_WIDTH = 760;
 const ONE_PIECE_POPUP_HEIGHT = 430;
-const ONE_PIECE_POPUP_LEFT = -8;
-const ONE_PIECE_POPUP_TOP = -8;
+const ONE_PIECE_POPUP_LEFT_OFFSET = -24;
+const ONE_PIECE_POPUP_TOP_OFFSET = -12;
 
 const categories = [
   {
@@ -333,8 +333,10 @@ function buildOnePieceQuery(episode, sourceKey) {
 function openOnePiecePopup(url) {
   const width = Math.min(ONE_PIECE_POPUP_WIDTH, Math.max(480, window.screen.availWidth - 40));
   const height = Math.min(ONE_PIECE_POPUP_HEIGHT, Math.max(320, window.screen.availHeight - 80));
-  const left = ONE_PIECE_POPUP_LEFT;
-  const top = ONE_PIECE_POPUP_TOP;
+  const screenLeft = Number(window.screen.availLeft || 0);
+  const screenTop = Number(window.screen.availTop || 0);
+  const left = screenLeft + ONE_PIECE_POPUP_LEFT_OFFSET;
+  const top = screenTop + ONE_PIECE_POPUP_TOP_OFFSET;
   const popup = window.open(
     url,
     "sasquatchOnePieceViewer",
@@ -347,7 +349,7 @@ function openOnePiecePopup(url) {
   }
 
   try {
-    popup.moveTo(ONE_PIECE_POPUP_LEFT, ONE_PIECE_POPUP_TOP);
+    popup.moveTo(left, top);
     popup.resizeTo(width, height);
   } catch {
     // Ignore browser restrictions on popup window controls.
