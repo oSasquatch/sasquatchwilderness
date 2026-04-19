@@ -430,6 +430,15 @@ function formatSeconds(seconds) {
   return `${hours}h ${minutes}m`;
 }
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function formatCellValue(column, rawValue) {
   if (column.type === "ratio") {
     return Number(rawValue || 0).toFixed(2);
