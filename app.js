@@ -182,6 +182,14 @@ function getYouTubeEmbedUrl(channelId) {
   return url.toString();
 }
 
+function getTwitchEmbedUrl(channel) {
+  const url = new URL("https://player.twitch.tv/");
+  url.searchParams.set("channel", channel);
+  url.searchParams.set("parent", window.location.hostname);
+  url.searchParams.set("muted", "true");
+  return url.toString();
+}
+
 function renderStreams() {
   if (!streamsSection || !streamsGrid || !streamsMeta) {
     return;
@@ -203,8 +211,22 @@ function renderStreams() {
     card.className = "stream-card";
 
     const safeName = stream.name || "Creator";
-    const channelUrl = `https://www.youtube.com/channel/${stream.channelId}`;
-    const frameUrl = getYouTubeEmbedUrl(stream.channelId);
+    const platform = stream.platform || "youtube";
+
+    let channelUrl = "#";
+    let frameUrl = "";
+
+    if (platform === "twitch" && stream.channel) {
+      channelUrl = `https://www.twitch.tv/${stream.channel}`;
+      frameUrl = getTwitchEmbedUrl(stream.channel);
+    } else if (stream.channelId) {
+      channelUrl = `https://www.youtube.com/channel/${stream.channelId}`;
+      frameUrl = getYouTubeEmbedUrl(stream.channelId);
+    }
+
+    if (!frameUrl) {
+      return;
+    }
 
     card.innerHTML = `
       <div class="stream-card-head">
