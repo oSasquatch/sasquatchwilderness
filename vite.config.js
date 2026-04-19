@@ -1,12 +1,12 @@
 import { defineConfig } from "vite";
 import mkcert from "vite-plugin-mkcert";
 
-import { cloudflare } from "@cloudflare/vite-plugin";
-
 export default defineConfig({
-  plugins: [mkcert({
-    hosts: ["localhost", "127.0.0.1", "sasquatchwilderness", "sasquatchwilderness.lvh.me"]
-  }), cloudflare()],
+  plugins: [
+    mkcert({
+      hosts: ["localhost", "127.0.0.1", "sasquatchwilderness", "sasquatchwilderness.lvh.me"]
+    })
+  ],
   base: "/",
   server: {
     host: true,
