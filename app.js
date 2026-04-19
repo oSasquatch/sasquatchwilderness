@@ -158,7 +158,6 @@ const filtersSection = document.querySelector(".filters");
 const onePieceArcSelect = document.querySelector("#onePieceArcSelect");
 const onePieceEpisodeSelect = document.querySelector("#onePieceEpisodeSelect");
 const onePieceSourceSelect = document.querySelector("#onePieceSourceSelect");
-const onePieceProviderSelect = document.querySelector("#onePieceProviderSelect");
 const onePieceWatchBtn = document.querySelector("#onePieceWatchBtn");
 const onePieceLinks = document.querySelector("#onePieceLinks");
 const onePieceFrame = document.querySelector("#onePieceFrame");
@@ -257,7 +256,7 @@ function renderStreams() {
 }
 
 function renderOnePieceOptions() {
-  if (!onePieceArcSelect || !onePieceEpisodeSelect || !onePieceSourceSelect || !onePieceProviderSelect) {
+  if (!onePieceArcSelect || !onePieceEpisodeSelect || !onePieceSourceSelect) {
     return;
   }
 
@@ -279,19 +278,6 @@ function renderOnePieceOptions() {
     option.textContent = source.label;
     onePieceSourceSelect.appendChild(option);
   });
-
-  onePieceProviderSelect.innerHTML = "";
-  ONE_PIECE_PROVIDERS.forEach((provider) => {
-    const option = document.createElement("option");
-    option.value = provider.key;
-    option.textContent = provider.label;
-    onePieceProviderSelect.appendChild(option);
-  });
-
-  const defaultProvider = ONE_PIECE_PROVIDERS.find((provider) => provider.key === "netflix") || ONE_PIECE_PROVIDERS[0];
-  if (defaultProvider) {
-    onePieceProviderSelect.value = defaultProvider.key;
-  }
 
   renderOnePieceLinks();
 }
@@ -359,7 +345,7 @@ function openOnePiecePopup(url) {
 }
 
 function renderOnePieceLinks() {
-  if (!onePieceEpisodeSelect || !onePieceSourceSelect || !onePieceLinks || !onePieceProviderSelect) {
+  if (!onePieceEpisodeSelect || !onePieceSourceSelect || !onePieceLinks) {
     return;
   }
 
@@ -368,37 +354,30 @@ function renderOnePieceLinks() {
   const query = buildOnePieceQuery(episode, sourceKey);
   const arc = getSelectedArc();
 
-  const selectedProvider = ONE_PIECE_PROVIDERS.find((provider) => provider.key === onePieceProviderSelect.value) || ONE_PIECE_PROVIDERS[0];
-  const selectedProviderUrl = selectedProvider.buildUrl(query);
-  const canEmbed = selectedProvider.embeddable !== false;
+  const netflixProvider = ONE_PIECE_PROVIDERS.find((provider) => provider.key === "netflix") || ONE_PIECE_PROVIDERS[0];
+  if (!netflixProvider) {
+    return;
+  }
+  const selectedProviderUrl = netflixProvider.buildUrl(query);
+  const canEmbed = netflixProvider.embeddable !== false;
 
   if (onePieceFrame) {
     onePieceFrame.hidden = !canEmbed;
     onePieceFrame.src = canEmbed ? selectedProviderUrl : "about:blank";
   }
 
-  const providerCards = ONE_PIECE_PROVIDERS.map((provider) => {
-    const href = provider.buildUrl(query);
-    return `
-      <a class="onepiece-link-card" href="${href}" data-popup-link="true" rel="noreferrer">
-        <strong>${provider.label}</strong>
-        <span>${arc.label} • Episode ${episode}</span>
-      </a>
-    `;
-  }).join("");
-
   const openInTabCard = `
     <a class="onepiece-link-card onepiece-link-primary" href="${selectedProviderUrl}" data-popup-link="true" rel="noreferrer">
-      <strong>Open ${escapeHtml(selectedProvider.label)} in popup</strong>
+      <strong>Open Netflix in popup</strong>
       <span>${arc.label} • Episode ${episode}</span>
     </a>
   `;
 
   const blockedMessage = canEmbed
     ? ""
-    : `<p class="onepiece-note">${escapeHtml(selectedProvider.label)} blocks embedded playback, so use the popup button below to keep Sasquatch open.</p>`;
+    : "<p class=\"onepiece-note\">Netflix blocks embedded playback, so use the popup button below to keep Sasquatch open.</p>";
 
-  onePieceLinks.innerHTML = `${blockedMessage}${openInTabCard}${providerCards}`;
+  onePieceLinks.innerHTML = `${blockedMessage}${openInTabCard}`;
 }
 
 function syncViewMode() {
@@ -847,10 +826,6 @@ if (onePieceArcSelect) {
 
 if (onePieceSourceSelect) {
   onePieceSourceSelect.addEventListener("change", renderOnePieceLinks);
-}
-
-if (onePieceProviderSelect) {
-  onePieceProviderSelect.addEventListener("change", renderOnePieceLinks);
 }
 
 if (onePieceLinks) {

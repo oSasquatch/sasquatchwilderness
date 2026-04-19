@@ -473,7 +473,7 @@ h1 {
 
 .onepiece-controls {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr auto;
+  grid-template-columns: 1fr 1fr 1fr auto;
   gap: 0.65rem;
   align-items: end;
 }
