@@ -1,5 +1,5 @@
 import { STREAM_CHANNELS } from "./streams.config.js";
-import { ONE_PIECE_EPISODE_COUNT, ONE_PIECE_SOURCES } from "./onepiece.config.js";
+import { ONE_PIECE_ARCS, ONE_PIECE_EPISODE_COUNT, ONE_PIECE_SOURCES } from "./onepiece.config.js";
 
 const API_BASE = "/api/leaderboard";
 const PAGE_SIZE = 500;
@@ -151,6 +151,7 @@ const streamsGrid = document.querySelector("#streamsGrid");
 const streamsMeta = document.querySelector("#streamsMeta");
 const streamsToggle = document.querySelector("#streamsToggle");
 const filtersSection = document.querySelector(".filters");
+const onePieceArcSelect = document.querySelector("#onePieceArcSelect");
 const onePieceEpisodeSelect = document.querySelector("#onePieceEpisodeSelect");
 const onePieceSourceSelect = document.querySelector("#onePieceSourceSelect");
 const onePieceWatchBtn = document.querySelector("#onePieceWatchBtn");
@@ -250,19 +251,20 @@ function renderStreams() {
 }
 
 function renderOnePieceOptions() {
-  if (!onePieceEpisodeSelect || !onePieceSourceSelect) {
+  if (!onePieceArcSelect || !onePieceEpisodeSelect || !onePieceSourceSelect) {
     return;
   }
 
-  onePieceEpisodeSelect.innerHTML = "";
-  for (let episode = 1; episode <= ONE_PIECE_EPISODE_COUNT; episode += 1) {
+  onePieceArcSelect.innerHTML = "";
+  ONE_PIECE_ARCS.forEach((arc) => {
     const option = document.createElement("option");
-    option.value = String(episode);
-    option.textContent = `Episode ${episode}`;
-    onePieceEpisodeSelect.appendChild(option);
-  }
+    option.value = arc.key;
+    option.textContent = `${arc.label} (${arc.start}-${arc.end})`;
+    onePieceArcSelect.appendChild(option);
+  });
 
-  onePieceEpisodeSelect.value = String(ONE_PIECE_EPISODE_COUNT);
+  onePieceArcSelect.value = ONE_PIECE_ARCS[ONE_PIECE_ARCS.length - 1].key;
+  renderOnePieceEpisodesForArc();
 
   onePieceSourceSelect.innerHTML = "";
   ONE_PIECE_SOURCES.forEach((source) => {
@@ -275,10 +277,37 @@ function renderOnePieceOptions() {
   updateOnePieceFrame();
 }
 
+function getSelectedArc() {
+  if (!onePieceArcSelect) {
+    return ONE_PIECE_ARCS[ONE_PIECE_ARCS.length - 1];
+  }
+
+  return ONE_PIECE_ARCS.find((arc) => arc.key === onePieceArcSelect.value) || ONE_PIECE_ARCS[ONE_PIECE_ARCS.length - 1];
+}
+
+function renderOnePieceEpisodesForArc() {
+  if (!onePieceEpisodeSelect) {
+    return;
+  }
+
+  const selectedArc = getSelectedArc();
+  onePieceEpisodeSelect.innerHTML = "";
+
+  for (let episode = selectedArc.start; episode <= selectedArc.end; episode += 1) {
+    const option = document.createElement("option");
+    option.value = String(episode);
+    option.textContent = `Episode ${episode}`;
+    onePieceEpisodeSelect.appendChild(option);
+  }
+
+  onePieceEpisodeSelect.value = String(selectedArc.end);
+}
+
 function buildOnePieceEmbedUrl(episode, sourceKey) {
   const source = ONE_PIECE_SOURCES.find((item) => item.key === sourceKey) || ONE_PIECE_SOURCES[0];
+  const arc = getSelectedArc();
   const suffix = source?.querySuffix ? ` ${source.querySuffix}` : "";
-  const query = `One Piece Episode ${episode}${suffix}`;
+  const query = `One Piece ${arc.label} Episode ${episode}${suffix}`;
 
   const url = new URL("https://www.youtube.com/embed");
   url.searchParams.set("listType", "search");
@@ -726,6 +755,13 @@ if (onePieceWatchBtn) {
 
 if (onePieceEpisodeSelect) {
   onePieceEpisodeSelect.addEventListener("change", updateOnePieceFrame);
+}
+
+if (onePieceArcSelect) {
+  onePieceArcSelect.addEventListener("change", () => {
+    renderOnePieceEpisodesForArc();
+    updateOnePieceFrame();
+  });
 }
 
 if (onePieceSourceSelect) {
