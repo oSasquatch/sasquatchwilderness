@@ -45,16 +45,19 @@ export const ONE_PIECE_PROVIDERS = [
   {
     key: "crunchyroll",
     label: "Crunchyroll",
+    embeddable: false,
     buildUrl: (query) => `https://www.crunchyroll.com/search?q=${encodeURIComponent(query)}`
   },
   {
     key: "netflix",
     label: "Netflix",
+    embeddable: false,
     buildUrl: (query) => `https://www.netflix.com/search?q=${encodeURIComponent(query)}`
   },
   {
     key: "hulu",
     label: "Hulu",
+    embeddable: false,
     buildUrl: (query) => `https://www.hulu.com/search?q=${encodeURIComponent(query)}`
   }
 ];

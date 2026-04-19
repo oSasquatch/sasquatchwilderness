@@ -337,11 +337,15 @@ function renderOnePieceLinks() {
   const arc = getSelectedArc();
 
   const selectedProvider = ONE_PIECE_PROVIDERS.find((provider) => provider.key === onePieceProviderSelect.value) || ONE_PIECE_PROVIDERS[0];
+  const selectedProviderUrl = selectedProvider.buildUrl(query);
+  const canEmbed = selectedProvider.embeddable !== false;
+
   if (onePieceFrame) {
-    onePieceFrame.src = selectedProvider.buildUrl(query);
+    onePieceFrame.hidden = !canEmbed;
+    onePieceFrame.src = canEmbed ? selectedProviderUrl : "about:blank";
   }
 
-  onePieceLinks.innerHTML = ONE_PIECE_PROVIDERS.map((provider) => {
+  const providerCards = ONE_PIECE_PROVIDERS.map((provider) => {
     const href = provider.buildUrl(query);
     return `
       <a class="onepiece-link-card" href="${href}">
@@ -350,6 +354,19 @@ function renderOnePieceLinks() {
       </a>
     `;
   }).join("");
+
+  const openInTabCard = `
+    <a class="onepiece-link-card onepiece-link-primary" href="${selectedProviderUrl}">
+      <strong>Open ${escapeHtml(selectedProvider.label)} in this tab</strong>
+      <span>${arc.label} • Episode ${episode}</span>
+    </a>
+  `;
+
+  const blockedMessage = canEmbed
+    ? ""
+    : `<p class="onepiece-note">${escapeHtml(selectedProvider.label)} blocks embedded playback, so use the button below to keep watching in this tab.</p>`;
+
+  onePieceLinks.innerHTML = `${blockedMessage}${openInTabCard}${providerCards}`;
 }
 
 function syncViewMode() {
