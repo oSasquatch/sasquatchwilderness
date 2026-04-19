@@ -168,9 +168,22 @@ function createPlayerWindow(targetUrl) {
   return playerWindow;
 }
 
+function shouldUsePlayerWindow(url, frameName) {
+  if (frameName === "sasquatchOnePieceViewer") {
+    return true;
+  }
+
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    return host.includes("netflix.com") || host.includes("crunchyroll.com") || host.includes("hulu.com");
+  } catch {
+    return false;
+  }
+}
+
 function wireWindowOpenHandling(win) {
   win.webContents.setWindowOpenHandler(({ url, frameName }) => {
-    if (frameName === "sasquatchOnePieceViewer") {
+    if (shouldUsePlayerWindow(url, frameName)) {
       createPlayerWindow(url);
       return { action: "deny" };
     }
