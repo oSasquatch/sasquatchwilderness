@@ -2,33 +2,51 @@ const { app, BrowserWindow, Menu, shell } = require("electron");
 const path = require("node:path");
 
 const APP_URL = "https://sasquatch.fq7xrtdkqs.workers.dev/";
-const PLAYER_WIDTH = 760;
-const PLAYER_HEIGHT = 430;
+const PLAYER_WIDTH = 640;
+const PLAYER_HEIGHT = 360;
+const PLAYER_X = 0;
+const PLAYER_Y = 0;
 
 let mainWindow;
+let playerWindow;
 
 function createPlayerWindow(targetUrl) {
-  const playerWindow = new BrowserWindow({
-    width: PLAYER_WIDTH,
-    height: PLAYER_HEIGHT,
-    x: 0,
-    y: 0,
-    frame: false,
-    movable: true,
-    resizable: true,
-    alwaysOnTop: true,
-    titleBarStyle: "hidden",
-    autoHideMenuBar: true,
-    backgroundColor: "#000000",
-    webPreferences: {
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: true,
-      preload: path.join(__dirname, "preload.cjs")
-    }
-  });
+  if (!playerWindow || playerWindow.isDestroyed()) {
+    playerWindow = new BrowserWindow({
+      width: PLAYER_WIDTH,
+      height: PLAYER_HEIGHT,
+      x: PLAYER_X,
+      y: PLAYER_Y,
+      useContentSize: true,
+      frame: false,
+      movable: true,
+      resizable: false,
+      alwaysOnTop: true,
+      titleBarStyle: "hidden",
+      autoHideMenuBar: true,
+      backgroundColor: "#000000",
+      webPreferences: {
+        contextIsolation: true,
+        nodeIntegration: false,
+        sandbox: true,
+        preload: path.join(__dirname, "preload.cjs")
+      }
+    });
 
+    playerWindow.on("closed", () => {
+      playerWindow = null;
+    });
+  }
+
+  playerWindow.setBounds({
+    x: PLAYER_X,
+    y: PLAYER_Y,
+    width: PLAYER_WIDTH,
+    height: PLAYER_HEIGHT
+  });
   playerWindow.loadURL(targetUrl);
+  playerWindow.show();
+  playerWindow.focus();
   return playerWindow;
 }
 
