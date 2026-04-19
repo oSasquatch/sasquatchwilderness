@@ -154,8 +154,10 @@ const filtersSection = document.querySelector(".filters");
 const onePieceArcSelect = document.querySelector("#onePieceArcSelect");
 const onePieceEpisodeSelect = document.querySelector("#onePieceEpisodeSelect");
 const onePieceSourceSelect = document.querySelector("#onePieceSourceSelect");
+const onePieceProviderSelect = document.querySelector("#onePieceProviderSelect");
 const onePieceWatchBtn = document.querySelector("#onePieceWatchBtn");
 const onePieceLinks = document.querySelector("#onePieceLinks");
+const onePieceFrame = document.querySelector("#onePieceFrame");
 
 let selectedCategory = categories[0];
 let allPlayers = [];
@@ -251,7 +253,7 @@ function renderStreams() {
 }
 
 function renderOnePieceOptions() {
-  if (!onePieceArcSelect || !onePieceEpisodeSelect || !onePieceSourceSelect) {
+  if (!onePieceArcSelect || !onePieceEpisodeSelect || !onePieceSourceSelect || !onePieceProviderSelect) {
     return;
   }
 
@@ -272,6 +274,14 @@ function renderOnePieceOptions() {
     option.value = source.key;
     option.textContent = source.label;
     onePieceSourceSelect.appendChild(option);
+  });
+
+  onePieceProviderSelect.innerHTML = "";
+  ONE_PIECE_PROVIDERS.forEach((provider) => {
+    const option = document.createElement("option");
+    option.value = provider.key;
+    option.textContent = provider.label;
+    onePieceProviderSelect.appendChild(option);
   });
 
   renderOnePieceLinks();
@@ -312,7 +322,7 @@ function buildOnePieceQuery(episode, sourceKey) {
 }
 
 function renderOnePieceLinks() {
-  if (!onePieceEpisodeSelect || !onePieceSourceSelect || !onePieceLinks) {
+  if (!onePieceEpisodeSelect || !onePieceSourceSelect || !onePieceLinks || !onePieceProviderSelect) {
     return;
   }
 
@@ -320,6 +330,11 @@ function renderOnePieceLinks() {
   const sourceKey = onePieceSourceSelect.value;
   const query = buildOnePieceQuery(episode, sourceKey);
   const arc = getSelectedArc();
+
+  const selectedProvider = ONE_PIECE_PROVIDERS.find((provider) => provider.key === onePieceProviderSelect.value) || ONE_PIECE_PROVIDERS[0];
+  if (onePieceFrame) {
+    onePieceFrame.src = selectedProvider.buildUrl(query);
+  }
 
   onePieceLinks.innerHTML = ONE_PIECE_PROVIDERS.map((provider) => {
     const href = provider.buildUrl(query);
@@ -769,6 +784,10 @@ if (onePieceArcSelect) {
 
 if (onePieceSourceSelect) {
   onePieceSourceSelect.addEventListener("change", renderOnePieceLinks);
+}
+
+if (onePieceProviderSelect) {
+  onePieceProviderSelect.addEventListener("change", renderOnePieceLinks);
 }
 
 document.addEventListener("click", (event) => {

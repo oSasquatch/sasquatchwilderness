@@ -473,7 +473,7 @@ h1 {
 
 .onepiece-controls {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr auto;
+  grid-template-columns: 1fr 1fr 1fr 1fr auto;
   gap: 0.65rem;
   align-items: end;
 }
@@ -548,6 +548,15 @@ h1 {
 
 .onepiece-link-card:hover {
   border-color: #ffd29d;
+}
+
+.onepiece-frame {
+  margin-top: 0.65rem;
+  width: 100%;
+  min-height: 58vh;
+  border: 1px solid #ffffff24;
+  border-radius: 9px;
+  background: #0d1511;
 }
 
 .board-head {
